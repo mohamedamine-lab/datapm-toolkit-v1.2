@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
 const MIN_CONTEXT_LENGTH = 50;
@@ -571,52 +571,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Context too long (max ${MAX_CONTEXT_LENGTH} chars).` }, { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    if (!anthropicKey) {
       const demo = DEMO_OUTPUTS[artifactType] || DEMO_OUTPUTS['Project Charter']!;
       const content = demo.replace(/Demo Project/g, projectName);
       return NextResponse.json({ content, metadata: { wordCount: content.split(/\s+/).length, artifactType, generatedAt: new Date().toISOString(), demo: true } });
     }
 
     const prompt = buildPrompt(artifactType, projectName, context);
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-    let lastError = '';
+    const client = new Anthropic({ apiKey: anthropicKey });
 
-    for (const modelName of MODELS) {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const model = genAI.getGenerativeModel({
-            model: modelName,
-            generationConfig: { temperature: 0.6, maxOutputTokens: 8192, topP: 0.85 },
-          });
-          const result = await model.generateContent(prompt);
-          const text = result.response.text();
-          if (text.length < 500) {
-            if (attempt < 2) { await new Promise(r => setTimeout(r, 2000)); continue; }
-            return NextResponse.json({ error: 'Generated output was too short. Please try again.' }, { status: 500 });
-          }
-          return NextResponse.json({ content: text, metadata: { wordCount: text.split(/\s+/).length, artifactType, generatedAt: new Date().toISOString(), model: modelName } });
-        } catch (retryErr: unknown) {
-          const errMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
-          lastError = errMsg;
-          if (errMsg.includes('429') && attempt < 2) {
-            await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 2000));
-            continue;
-          }
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const message = await client.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 8192,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        const text = message.content[0].type === 'text' ? message.content[0].text : '';
+        if (text.length < 500) {
           if (attempt < 2) { await new Promise(r => setTimeout(r, 2000)); continue; }
-          break;
+          return NextResponse.json({ error: 'Generated output was too short. Please try again.' }, { status: 500 });
         }
+        return NextResponse.json({ content: text, metadata: { wordCount: text.split(/\s+/).length, artifactType, generatedAt: new Date().toISOString(), model: 'claude-haiku' } });
+      } catch (retryErr: unknown) {
+        const errMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+        if (attempt < 2) { await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 1000)); continue; }
+        return NextResponse.json({ error: `Generation failed: ${errMsg}` }, { status: 500 });
       }
     }
 
-    if (lastError.includes('429')) {
-      const demo = DEMO_OUTPUTS[artifactType] || DEMO_OUTPUTS['Project Charter']!;
-      const content = demo.replace(/Demo Project/g, projectName);
-      return NextResponse.json({ content: content + '\n\n> ⚠️ *AI service at capacity — showing demo output. Try again in 30 seconds for AI-generated content.*', metadata: { wordCount: content.split(/\s+/).length, artifactType, generatedAt: new Date().toISOString(), demo: true } });
-    }
-
-    return NextResponse.json({ error: `Generation failed: ${lastError}` }, { status: 500 });
+    const demo = DEMO_OUTPUTS[artifactType] || DEMO_OUTPUTS['Project Charter']!;
+    const content = demo.replace(/Demo Project/g, projectName);
+    return NextResponse.json({ content, metadata: { wordCount: content.split(/\s+/).length, artifactType, generatedAt: new Date().toISOString(), demo: true } });
   } catch (err: unknown) {
     console.error('Generate error:', err);
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Unexpected error' }, { status: 500 });
