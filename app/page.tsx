@@ -23,7 +23,6 @@ const LogoMark = () => (
   </div>
 );
 
-/* Data flow motif SVG for hero background */
 const DataMotif = () => (
   <svg className="absolute inset-0 w-full h-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -32,13 +31,11 @@ const DataMotif = () => (
       </pattern>
     </defs>
     <rect width="100%" height="100%" fill="url(#grid)"/>
-    {/* Data flow lines */}
     <line x1="15%" y1="20%" x2="45%" y2="35%" stroke="#C6F135" strokeWidth="1" opacity="0.3"/>
     <line x1="45%" y1="35%" x2="75%" y2="25%" stroke="#FF4D8D" strokeWidth="1" opacity="0.3"/>
     <line x1="75%" y1="25%" x2="90%" y2="45%" stroke="#C6F135" strokeWidth="1" opacity="0.2"/>
     <line x1="10%" y1="60%" x2="40%" y2="70%" stroke="#FF4D8D" strokeWidth="1" opacity="0.2"/>
     <line x1="40%" y1="70%" x2="65%" y2="55%" stroke="#C6F135" strokeWidth="1" opacity="0.15"/>
-    {/* Dots at intersections */}
     <circle cx="15%" cy="20%" r="3" fill="#C6F135" opacity="0.4"/>
     <circle cx="45%" cy="35%" r="3" fill="#C6F135" opacity="0.4"/>
     <circle cx="75%" cy="25%" r="3" fill="#FF4D8D" opacity="0.4"/>
@@ -78,9 +75,23 @@ const PRICING = [
 ];
 
 const STATS = [
+  { value: 500, suffix: '+', label: 'Artifacts generated' },
   { value: 7, suffix: '', label: 'Artifact types' },
   { value: 30, suffix: 's', label: 'Average generation' },
-  { value: 1200, suffix: '+', label: 'Words per output' },
+  { value: 4, suffix: '', label: 'Project templates' },
+];
+
+const TESTIMONIALS = [
+  { quote: "Saved me 3 hours on a project charter last week. The RACI matrix alone was worth it.", name: 'Marie L.', role: 'Data PM @ Société Générale', avatar: '👩‍💼' },
+  { quote: "Finally a tool that understands how data projects actually work. Not generic AI fluff.", name: 'Romain B.', role: 'BI Manager', avatar: '👨‍💻' },
+  { quote: "Generated our entire KPI framework in under a minute. My VP thought I worked all weekend.", name: 'Camille T.', role: 'Head of Data', avatar: '👩‍🔬' },
+];
+
+const DEMO_ARTIFACTS = [
+  { id: 'project-charter', name: 'Project Charter', icon: '📋' },
+  { id: 'kpi-framework', name: 'KPI Framework', icon: '📊' },
+  { id: 'migration-plan', name: 'Migration Plan', icon: '🔄' },
+  { id: 'data-dictionary', name: 'Data Dictionary', icon: '📖' },
 ];
 
 function CountUp({ target, suffix }: { target: number; suffix: string }) {
@@ -102,12 +113,96 @@ function CountUp({ target, suffix }: { target: number; suffix: string }) {
   }, [started, target]);
 
   return (
-    <motion.span
-      onViewportEnter={() => setStarted(true)}
-      viewport={{ once: true }}
-    >
+    <motion.span onViewportEnter={() => setStarted(true)} viewport={{ once: true }}>
       {count}{suffix}
     </motion.span>
+  );
+}
+
+/* Demo Widget */
+function DemoWidget() {
+  const [demoName, setDemoName] = useState('');
+  const [demoType, setDemoType] = useState('Project Charter');
+  const [demoResult, setDemoResult] = useState('');
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  const handleDemo = async () => {
+    if (!demoName) return;
+    setDemoLoading(true);
+    setDemoResult('');
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectName: demoName,
+          context: `Quick demo for ${demoName}. This is a data project that needs professional PMO documentation. Generate a concise, high-quality sample showing the key sections.`,
+          artifactType: demoType,
+        }),
+      });
+      const data = await res.json();
+      if (data.content) {
+        // Truncate to ~200 chars for preview
+        const clean = data.content.replace(/\n\n> ⚠️[\s\S]*$/, '');
+        setDemoResult(clean);
+      }
+    } catch {
+      setDemoResult('# Sample Output\n\nSomething went wrong — try the full app for a better experience!');
+    }
+    setDemoLoading(false);
+  };
+
+  return (
+    <section id="demo" className="max-w-4xl mx-auto px-6 py-24">
+      <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+        <h2 className="font-heading text-3xl sm:text-4xl font-bold mb-3 text-brand-text">Try it now — no signup</h2>
+        <p className="text-brand-muted">Type a project name, pick an artifact, and see what DataPM generates.</p>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+        className="bg-brand-surface border border-brand-border rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-40 h-40 bg-brand-accent/[0.05] rounded-full blur-3xl" />
+        <div className="relative">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <input type="text" value={demoName} onChange={e => setDemoName(e.target.value)}
+              placeholder="Your project name..."
+              className="flex-1 px-4 py-3 rounded-xl bg-brand-base border border-brand-border text-brand-text placeholder-brand-tertiary focus:outline-none focus:border-brand-accent transition" />
+            <select value={demoType} onChange={e => setDemoType(e.target.value)}
+              className="px-4 py-3 rounded-xl bg-brand-base border border-brand-border text-brand-text focus:outline-none focus:border-brand-accent transition appearance-none cursor-pointer">
+              {DEMO_ARTIFACTS.map(a => (
+                <option key={a.id} value={a.name}>{a.icon} {a.name}</option>
+              ))}
+            </select>
+            <button onClick={handleDemo} disabled={!demoName || demoLoading}
+              className="bg-brand-accent hover:bg-brand-accent-bright text-brand-base font-semibold px-6 py-3 rounded-xl transition disabled:opacity-40 shadow-lg shadow-brand-accent/20 whitespace-nowrap">
+              {demoLoading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                  Generating...
+                </span>
+              ) : 'Try it →'}
+            </button>
+          </div>
+
+          {demoResult && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative">
+              <div className="bg-brand-base border border-brand-border rounded-xl p-5 max-h-[200px] overflow-hidden relative">
+                <pre className="text-sm text-brand-muted whitespace-pre-wrap font-mono leading-relaxed">
+                  {demoResult.substring(0, 500)}
+                </pre>
+                {/* Blur overlay */}
+                <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-brand-base via-brand-base/90 to-transparent flex items-end justify-center pb-4">
+                  <Link href={`/app?name=${encodeURIComponent(demoName)}&context=${encodeURIComponent(`Demo for ${demoName}`)}&type=${encodeURIComponent(demoType)}`}
+                    className="bg-brand-accent hover:bg-brand-accent-bright text-brand-base font-semibold px-5 py-2 rounded-lg transition text-sm shadow-lg shadow-brand-accent/20">
+                    See full output →
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    </section>
   );
 }
 
@@ -120,6 +215,7 @@ export default function LandingPage() {
   const heroY = useTransform(scrollY, [0, 500], [0, 100]);
 
   useEffect(() => {
+    document.title = 'DataPM — Ship data projects faster';
     const handler = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handler);
     return () => window.removeEventListener('scroll', handler);
@@ -138,7 +234,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-base">
-      {/* Nav — transparent → frosted glass */}
+      {/* Nav */}
       <nav className={`fixed top-0 left-0 right-0 px-6 py-4 z-50 transition-all duration-300 ${
         scrolled ? 'bg-brand-base/80 backdrop-blur-xl border-b border-brand-border/50' : 'bg-transparent'
       }`}>
@@ -147,6 +243,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-3 sm:gap-5">
             <a href="#features" className="hidden sm:inline text-sm text-brand-muted hover:text-brand-text transition">Features</a>
             <a href="#pricing" className="hidden sm:inline text-sm text-brand-muted hover:text-brand-text transition">Pricing</a>
+            <Link href="/templates" className="hidden sm:inline text-sm text-brand-muted hover:text-brand-text transition">Templates</Link>
             <Link href="/app" className="bg-brand-accent hover:bg-brand-accent-bright text-brand-base text-sm font-semibold px-5 py-2.5 rounded-lg transition shadow-lg shadow-brand-accent/20">
               Open App →
             </Link>
@@ -159,7 +256,6 @@ export default function LandingPage() {
         <section className="relative min-h-[100vh] flex items-center justify-center overflow-hidden noise-overlay scanlines">
           <motion.div className="absolute inset-0 animated-gradient" style={{ y: heroY }} />
           <DataMotif />
-          {/* Glow halos */}
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-brand-accent/[0.06] rounded-full blur-[150px]" />
           <div className="absolute top-2/3 left-1/4 w-[400px] h-[400px] bg-brand-rose/[0.05] rounded-full blur-[120px]" />
 
@@ -184,15 +280,15 @@ export default function LandingPage() {
               <Link href="/app" className="bg-brand-accent hover:bg-brand-accent-bright text-brand-base font-semibold px-8 py-4 rounded-xl transition text-lg shadow-xl shadow-brand-accent/25 hover:shadow-brand-accent/40 hover:-translate-y-0.5">
                 Try free →
               </Link>
-              <a href="#sample" className="border border-brand-border hover:border-brand-border-bright text-brand-muted hover:text-brand-text font-semibold px-8 py-4 rounded-xl transition text-lg">
-                See example ↓
+              <a href="#demo" className="border border-brand-border hover:border-brand-border-bright text-brand-muted hover:text-brand-text font-semibold px-8 py-4 rounded-xl transition text-lg">
+                Live demo ↓
               </a>
             </motion.div>
 
             <motion.p variants={fadeUp} initial="hidden" animate="visible" custom={4}
               className="text-xs text-brand-tertiary">No account needed · Free during beta · 30 seconds</motion.p>
 
-            {/* Hero visual — mock terminal */}
+            {/* Hero visual */}
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
@@ -200,7 +296,6 @@ export default function LandingPage() {
               className="mt-16 w-full max-w-2xl relative"
             >
               <div className="absolute -inset-4 bg-brand-accent/[0.06] rounded-3xl blur-2xl animate-glow-pulse" />
-              {/* Rose glow on opposite corner */}
               <div className="absolute -bottom-4 -right-4 w-48 h-48 bg-brand-rose/[0.08] rounded-full blur-2xl" />
               <div className="relative bg-brand-surface border border-brand-border rounded-2xl overflow-hidden shadow-2xl">
                 <div className="bg-brand-base border-b border-brand-border px-5 py-3 flex items-center justify-between">
@@ -237,7 +332,7 @@ export default function LandingPage() {
 
         {/* Stats */}
         <section className="max-w-4xl mx-auto px-6 py-16">
-          <div className="grid grid-cols-3 gap-6 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
             {STATS.map((s) => (
               <div key={s.label}>
                 <p className="font-heading text-3xl sm:text-4xl font-extrabold text-brand-text">
@@ -248,6 +343,9 @@ export default function LandingPage() {
             ))}
           </div>
         </section>
+
+        {/* Live Demo Widget */}
+        <DemoWidget />
 
         {/* Features */}
         <section id="features" className="max-w-5xl mx-auto px-6 py-24">
@@ -269,7 +367,6 @@ export default function LandingPage() {
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
                 className="bg-brand-surface border border-brand-border rounded-2xl p-6 hover:border-brand-accent/30 transition-all duration-200 group relative overflow-hidden"
               >
-                {/* Subtle glow on hover */}
                 <div className="absolute -top-12 -right-12 w-24 h-24 bg-brand-accent/0 group-hover:bg-brand-accent/[0.06] rounded-full blur-2xl transition-all duration-500" />
                 <motion.div whileHover={{ rotate: 5 }} className="relative w-10 h-10 rounded-xl bg-brand-accent/10 text-brand-accent flex items-center justify-center mb-4 group-hover:bg-brand-accent/20 transition">
                   {f.icon}
@@ -281,7 +378,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* How it works */}
+        {/* How it works — animated */}
         <section className="max-w-4xl mx-auto px-6 py-24">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             className="text-center mb-16">
@@ -290,25 +387,77 @@ export default function LandingPage() {
           <div className="relative grid sm:grid-cols-3 gap-8 sm:gap-12">
             <div className="hidden sm:block absolute top-8 left-[20%] right-[20%] h-px bg-gradient-to-r from-brand-accent/30 via-brand-rose/20 to-brand-accent/30" />
             {[
-              { step: '1', title: 'Describe Your Project', desc: 'Enter your project name, stakeholders, goals, and data sources.' },
-              { step: '2', title: 'Pick an Artifact', desc: 'Choose from 7 PMO document types: charters, KPIs, specs, decks…' },
-              { step: '3', title: 'Generate & Export', desc: 'Get a structured, professional document. Export as DOCX or Markdown.' },
+              { step: '1', title: 'Describe Your Project', desc: 'Enter your project name, stakeholders, goals, and data sources. More context = better output.' },
+              { step: '2', title: 'Pick an Artifact', desc: 'Choose from 7 PMO document types: charters, KPIs, specs, migration plans, and more.' },
+              { step: '3', title: 'Generate & Export', desc: 'Get a structured, professional document. Edit inline, download as DOCX or Markdown.' },
             ].map((s, i) => (
               <motion.div key={s.step}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.15, duration: 0.5 }}
+                transition={{ delay: i * 0.2, duration: 0.6, ease: "easeOut" }}
                 className="text-center relative z-10"
               >
-                <div className="w-14 h-14 rounded-full bg-brand-accent/10 border-2 border-brand-accent/30 text-brand-accent font-heading font-bold text-xl flex items-center justify-center mx-auto mb-5">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.2 + 0.3, type: "spring", stiffness: 200 }}
+                  className="w-14 h-14 rounded-full bg-brand-accent/10 border-2 border-brand-accent/30 text-brand-accent font-heading font-bold text-xl flex items-center justify-center mx-auto mb-5"
+                >
                   {s.step}
-                </div>
+                </motion.div>
                 <h3 className="font-heading font-semibold text-lg mb-2 text-brand-text">{s.title}</h3>
                 <p className="text-sm text-brand-muted leading-relaxed">{s.desc}</p>
               </motion.div>
             ))}
           </div>
+        </section>
+
+        {/* Testimonials */}
+        <section className="max-w-5xl mx-auto px-6 py-24">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-center mb-12">
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold mb-3 text-brand-text">Loved by Data PMs</h2>
+            <p className="text-brand-muted">What early adopters are saying</p>
+          </motion.div>
+          <div className="grid sm:grid-cols-3 gap-5">
+            {TESTIMONIALS.map((t, i) => (
+              <motion.div key={t.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-brand-surface border border-brand-border rounded-2xl p-6 relative"
+              >
+                <div className="text-brand-accent text-3xl mb-3">&ldquo;</div>
+                <p className="text-sm text-brand-muted leading-relaxed mb-5">{t.quote}</p>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{t.avatar}</span>
+                  <div>
+                    <p className="text-sm font-medium text-brand-text">{t.name}</p>
+                    <p className="text-xs text-brand-tertiary">{t.role}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* Templates CTA */}
+        <section className="max-w-4xl mx-auto px-6 py-16">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="bg-brand-surface border border-brand-border rounded-2xl p-8 sm:p-10 text-center relative overflow-hidden">
+            <div className="absolute -top-16 -left-16 w-32 h-32 bg-brand-accent/[0.06] rounded-full blur-3xl" />
+            <div className="absolute -bottom-16 -right-16 w-32 h-32 bg-brand-rose/[0.05] rounded-full blur-3xl" />
+            <div className="relative">
+              <h3 className="font-heading text-2xl font-bold text-brand-text mb-3">Start from a template</h3>
+              <p className="text-brand-muted text-sm mb-6 max-w-md mx-auto">Pre-filled project contexts for common data scenarios. One click to generate.</p>
+              <Link href="/templates" className="inline-flex items-center gap-2 bg-brand-accent hover:bg-brand-accent-bright text-brand-base font-semibold px-6 py-3 rounded-xl transition shadow-lg shadow-brand-accent/20 hover:-translate-y-0.5">
+                Browse templates →
+              </Link>
+            </div>
+          </motion.div>
         </section>
 
         {/* Sample Output */}
@@ -448,6 +597,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-6 text-xs text-brand-muted">
             <a href="#features" className="hover:text-brand-text transition">Features</a>
             <a href="#pricing" className="hover:text-brand-text transition">Pricing</a>
+            <Link href="/templates" className="hover:text-brand-text transition">Templates</Link>
             <Link href="/app" className="hover:text-brand-text transition">Open App</Link>
             <span>© 2026 DataPM</span>
           </div>

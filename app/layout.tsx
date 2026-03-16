@@ -17,14 +17,16 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'DataPM — Stop Writing Project Docs from Scratch',
+  title: {
+    default: 'DataPM — Ship data projects faster',
+    template: '%s — DataPM',
+  },
   description: 'DataPM generates professional project charters, KPI frameworks, data specs and stakeholder decks — in seconds. Built for Data PMs.',
-  metadataBase: new URL('https://datapm-toolkit-v10.vercel.app'),
+  metadataBase: new URL('https://datapm-toolkit-v12.vercel.app'),
   openGraph: {
-    title: 'DataPM — Stop Writing Project Docs from Scratch',
+    title: 'DataPM — Ship data projects faster',
     description: 'Generate professional PMO artifacts in seconds. Project charters, KPI frameworks, data specs, stakeholder decks.',
     type: 'website',
-    url: 'https://datapm-toolkit-v10.vercel.app',
     siteName: 'DataPM',
     images: [{
       url: '/og.png',
@@ -35,7 +37,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DataPM — Stop Writing Project Docs from Scratch',
+    title: 'DataPM — Ship data projects faster',
     description: 'Generate professional PMO artifacts in seconds.',
     images: ['/og.png'],
   },
