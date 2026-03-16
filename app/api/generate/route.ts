@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
 
 const MIN_CONTEXT_LENGTH = 50;
@@ -571,29 +571,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Context too long (max ${MAX_CONTEXT_LENGTH} chars).` }, { status: 400 });
     }
 
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    if (!anthropicKey) {
+    const openrouterKey = process.env.OPENROUTER_API_KEY;
+    if (!openrouterKey) {
       const demo = DEMO_OUTPUTS[artifactType] || DEMO_OUTPUTS['Project Charter']!;
       const content = demo.replace(/Demo Project/g, projectName);
       return NextResponse.json({ content, metadata: { wordCount: content.split(/\s+/).length, artifactType, generatedAt: new Date().toISOString(), demo: true } });
     }
 
     const prompt = buildPrompt(artifactType, projectName, context);
-    const client = new Anthropic({ apiKey: anthropicKey });
+    const client = new OpenAI({
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: openrouterKey,
+    });
 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const message = await client.messages.create({
-          model: 'claude-haiku-4-5-20251001',
+        const completion = await client.chat.completions.create({
+          model: 'google/gemini-2.0-flash-001',
           max_tokens: 8192,
           messages: [{ role: 'user', content: prompt }],
         });
-        const text = message.content[0].type === 'text' ? message.content[0].text : '';
+        const text = completion.choices[0]?.message?.content || '';
         if (text.length < 500) {
           if (attempt < 2) { await new Promise(r => setTimeout(r, 2000)); continue; }
           return NextResponse.json({ error: 'Generated output was too short. Please try again.' }, { status: 500 });
         }
-        return NextResponse.json({ content: text, metadata: { wordCount: text.split(/\s+/).length, artifactType, generatedAt: new Date().toISOString(), model: 'claude-haiku' } });
+        return NextResponse.json({ content: text, metadata: { wordCount: text.split(/\s+/).length, artifactType, generatedAt: new Date().toISOString(), model: 'gemini-2.0-flash' } });
       } catch (retryErr: unknown) {
         const errMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
         if (attempt < 2) { await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 1000)); continue; }
