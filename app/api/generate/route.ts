@@ -87,7 +87,13 @@ DOCUMENT QUALITY STANDARDS — these are non-negotiable:
 
 9. **Section headers**: Use clear, descriptive section headers that a busy executive can scan in 30 seconds to find what they need.
 
-10. **Cross-referencing**: Reference specific systems, tools, stakeholders, and data sources mentioned in the context throughout the document — not just in one section.`;
+10. **Cross-referencing**: Reference specific systems, tools, stakeholders, and data sources mentioned in the context throughout the document — not just in one section.
+
+11. **Quantify everything**: Every claim must have a number. "Significant improvement" → "23% reduction in processing time". "Large dataset" → "2.3TB across 450 tables". If numbers aren't provided, use industry-reasonable estimates.
+
+12. **Decision-ready**: Every section should answer a question a stakeholder would ask. The Executive Summary answers "Should we fund this?" The Risk Register answers "What could go wrong?" The Timeline answers "When will this be done?"
+
+13. **Avoid AI tells**: Never use phrases like "leveraging", "synergies", "cutting-edge", "revolutionary", "game-changing", "holistic approach", "best-in-class". Write like a human consultant who bills $300/hour.`;
 
 const buildPrompt = (type: string, name: string, ctx: string): string => {
   const base = `${SYSTEM_INSTRUCTION}
