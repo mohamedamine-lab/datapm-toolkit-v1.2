@@ -226,7 +226,7 @@ function AppPage() {
       addToast('Generation failed — try again', 'error');
     }
     setLoading(false);
-  }, [projectName, context, artifactType, history, addToast]);
+  }, [projectName, context, artifactType, history, addToast, checkLimit, recordUsage]);
 
   const handleRefine = async () => {
     if (!result) return;
