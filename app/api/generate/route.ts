@@ -600,16 +600,18 @@ export async function POST(req: NextRequest) {
         const text = completion.choices[0]?.message?.content || '';
         if (text.length < 500) {
           if (attempt < 2) { await new Promise(r => setTimeout(r, 2000)); continue; }
-          return NextResponse.json({ error: 'Generated output was too short. Please try again.' }, { status: 500 });
+          break; // Fall through to demo mode
         }
         return NextResponse.json({ content: text, metadata: { wordCount: text.split(/\s+/).length, artifactType, generatedAt: new Date().toISOString(), model: 'gemini-2.0-flash' } });
       } catch (retryErr: unknown) {
-        const errMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+        console.error('OpenRouter attempt failed:', retryErr);
         if (attempt < 2) { await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 1000)); continue; }
-        return NextResponse.json({ error: `Generation failed: ${errMsg}` }, { status: 500 });
+        // Fall through to demo mode instead of returning error
+        break;
       }
     }
 
+    // All attempts failed — fall back to demo output
     const demo = DEMO_OUTPUTS[artifactType] || DEMO_OUTPUTS['Project Charter']!;
     const content = demo.replace(/Demo Project/g, projectName);
     return NextResponse.json({ content, metadata: { wordCount: content.split(/\s+/).length, artifactType, generatedAt: new Date().toISOString(), demo: true } });
