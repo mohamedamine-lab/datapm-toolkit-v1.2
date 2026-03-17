@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUsage } from '../hooks/useUsage';
+import UpgradeModal from '../components/UpgradeModal';
 
 /* ── Logo ── */
 const Logo = () => (
@@ -103,6 +105,7 @@ export default function AppPageWrapper() {
 
 function AppPage() {
   const searchParams = useSearchParams();
+  const { usage, remaining, isAtLimit, isPro, showUpgradeModal, setShowUpgradeModal, recordUsage, checkLimit, FREE_LIMIT } = useUsage();
 
   // Steps: 1 = project info, 2 = choose artifact, 3 = generate & export
   const [step, setStep] = useState(1);
@@ -192,6 +195,8 @@ function AppPage() {
   const handleGenerate = useCallback(async () => {
     if (!projectName || !context) return;
     if (context.length < 50) { setError('Provide at least 50 characters of context.'); return; }
+    // Check usage limit
+    if (!checkLimit()) return;
     setStep(3);
     setLoading(true);
     setResult('');
@@ -212,6 +217,7 @@ function AppPage() {
       setResult(cleanContent);
       setGenerationTime(Math.round((Date.now() - startTime) / 1000));
       const wc = cleanContent.split(/\s+/).length;
+      recordUsage(); // Track usage for paywall
       saveToHistory({ id: Date.now().toString(), projectName, artifactType, content: cleanContent, context, timestamp: new Date().toISOString(), wordCount: wc });
       addToast(`✓ ${artifactType} generated in ${Math.round((Date.now() - startTime) / 1000)}s`);
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
@@ -313,6 +319,9 @@ function AppPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-base">
+      {/* Paywall Modal */}
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} usageCount={usage.count} freeLimit={FREE_LIMIT} />
+
       {/* Toast */}
       <ToastContainer toasts={toasts} onDismiss={id => setToasts(prev => prev.filter(t => t.id !== id))} />
 
@@ -332,6 +341,20 @@ function AppPage() {
               <span className="hidden sm:inline">History</span> ({history.length})
             </button>
             <Link href="/templates" className="text-sm text-brand-muted hover:text-brand-text transition hidden sm:inline px-3 py-1.5 rounded-lg hover:bg-brand-surface">Templates</Link>
+            {/* Usage indicator */}
+            {!isPro && (
+              <button onClick={() => { if (isAtLimit) setShowUpgradeModal(true); }}
+                className={`text-xs px-2.5 py-1 rounded-full border flex items-center gap-1.5 transition ${
+                  isAtLimit ? 'bg-brand-rose/10 border-brand-rose/30 text-brand-rose cursor-pointer hover:bg-brand-rose/20' :
+                  remaining <= 2 ? 'bg-brand-warning/10 border-brand-warning/30 text-brand-warning' :
+                  'bg-brand-surface border-brand-border text-brand-muted'
+                }`}>
+                <span className="font-medium">{remaining}</span>/{FREE_LIMIT}
+              </button>
+            )}
+            {isPro && (
+              <span className="text-xs text-brand-accent bg-brand-accent/10 px-2.5 py-1 rounded-full border border-brand-accent/30 font-medium">Pro ✦</span>
+            )}
             <span className="text-xs text-brand-tertiary bg-brand-surface px-2.5 py-1 rounded-full border border-brand-border">v1.2</span>
           </div>
         </div>
